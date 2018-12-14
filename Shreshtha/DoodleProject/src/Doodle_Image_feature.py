@@ -1,6 +1,7 @@
 import random
 
 import pandas as pd
+import numpy as np
 
 import os
 
@@ -14,9 +15,11 @@ from sklearn.metrics import accuracy_score
 
 warnings.filterwarnings('ignore')  # to suppress some matplotlib deprecation warnings
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 
 from sklearn.neighbors import KNeighborsClassifier
+
+import matplotlib.pyplot as plt
 
 # Any results you write to the current directory are saved as output.
 
@@ -98,45 +101,49 @@ x_train, y_train = Utils.image_generator_xd(train_set, 64)
 x_test, y_test = Utils.image_generator_xd(test_set, 64)
 print("Data prepared")
 
-knn = KNN(n=3)
-print(x_train.shape)
-print(y_train.shape)
-
+knn = KNeighborsClassifier(n_neighbors = 3, n_jobs=-1)
 knn.fit(x_train, y_train)
-print("Trained KNN", knn)
 y_pred_knn = knn.predict(x_test)
-ccc = 0
-for pred, act in zip(y_pred_knn, y_test):
-    if pred == act:
-        ccc += 1
+print("Accuracy ", accuracy_score(y_test, y_pred_knn))
 
-acc_knn = accuracy_score(y_test, y_pred_knn)
-print('KNN accuracy: ', acc_knn)
-print('KNN accuracy: ', ccc / len(y_test))
 
-print("---Starting Random Forest----")
-# Base RFC model
-rfc = RandomForestClassifier(random_state=1)
-rfc.fit(x_train, y_train)
-print(rfc)
-y_pred_rfc = rfc.predict(x_test)
-acc_rfc = accuracy_score(y_test, y_pred_rfc)
-print('Random forest accuracy: ', acc_rfc)
+###############Grid search#######
+grid_search_params = {'n_neighbors': np.arange(1,6,1)}
 
-print("---Finished Random Forest----")
+knn = KNeighborsClassifier(n_jobs=-1)
+knn = GridSearchCV(knn, grid_search_params, n_jobs=-1) #use all cpu cores
+knn.fit(x_train, y_train)
 
-print("SVM with linear kernal")
-lsvc = LinearSVC(random_state=1)
-lsvc.fit(x_train, y_train)
-print(lsvc)
-y_pred_lsvc = lsvc.predict(x_test)
-acc_lsvc = accuracy_score(y_test, y_pred_lsvc)
-print('Linear SVC accuracy: ', acc_lsvc)
+results_knn = pd.DataFrame(knn.cv_results_)
+results_knn.sort_values('mean_test_score', ascending = False)
 
-print("SVM with RBF Kernal")
-svc = SVC(kernel='rbf', random_state=1)
-svc.fit(x_train, y_train)
-print(svc)
-y_pred_svc = svc.predict(x_test)
-acc_svc = accuracy_score(y_test, y_pred_svc)
-print('Gaussian Radial Basis Function SVC Accuracy: ', acc_svc)
+# Plot results of grid search
+results_knn.plot('param_n_neighbors','mean_test_score')
+
+
+# print("---Starting Random Forest----")
+# # Base RFC model
+# rfc = RandomForestClassifier(random_state=1)
+# rfc.fit(x_train, y_train)
+# print(rfc)
+# y_pred_rfc = rfc.predict(x_test)
+# acc_rfc = accuracy_score(y_test, y_pred_rfc)
+# print('Random forest accuracy: ', acc_rfc)
+#
+# print("---Finished Random Forest----")
+#
+# print("SVM with linear kernal")
+# lsvc = LinearSVC(random_state=1)
+# lsvc.fit(x_train, y_train)
+# print(lsvc)
+# y_pred_lsvc = lsvc.predict(x_test)
+# acc_lsvc = accuracy_score(y_test, y_pred_lsvc)
+# print('Linear SVC accuracy: ', acc_lsvc)
+#
+# print("SVM with RBF Kernal")
+# svc = SVC(kernel='rbf', random_state=1)
+# svc.fit(x_train, y_train)
+# print(svc)
+# y_pred_svc = svc.predict(x_test)
+# acc_svc = accuracy_score(y_test, y_pred_svc)
+# print('Gaussian Radial Basis Function SVC Accuracy: ', acc_svc)
